@@ -360,7 +360,7 @@ class _PassengerAppWidgetState extends State<PassengerAppWidget> {
                         begin: Alignment.bottomCenter,
                         end: Alignment.topCenter,
                         colors: [
-                          Sky4AllPalette.primary.withOpacity(0.85),
+                          Sky4AllPalette.primary.withValues(alpha:0.85),
                           Colors.transparent,
                         ],
                       ),
@@ -419,7 +419,7 @@ class _PassengerAppWidgetState extends State<PassengerAppWidget> {
                     ),
                     const SizedBox(height: 4),
                     DropdownButtonFormField<int>(
-                      value: _row,
+                      initialValue: _row,
                       decoration: InputDecoration(
                         filled: true,
                         fillColor: Sky4AllPalette.background,
@@ -455,7 +455,7 @@ class _PassengerAppWidgetState extends State<PassengerAppWidget> {
                     ),
                     const SizedBox(height: 4),
                     DropdownButtonFormField<String>(
-                      value: _letter,
+                      initialValue: _letter,
                       decoration: InputDecoration(
                         filled: true,
                         fillColor: Sky4AllPalette.background,
@@ -618,7 +618,7 @@ class _PassengerAppWidgetState extends State<PassengerAppWidget> {
                     vertical: 4,
                   ),
                   decoration: BoxDecoration(
-                    color: Sky4AllPalette.primaryForeground.withOpacity(0.2),
+                    color: Sky4AllPalette.primaryForeground.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(999),
                   ),
                   child: Row(
@@ -765,7 +765,7 @@ class _PassengerAppWidgetState extends State<PassengerAppWidget> {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Sky4AllPalette.secondary.withOpacity(0.6),
+                      color: Sky4AllPalette.secondary.withValues(alpha: 0.6),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Column(
@@ -1003,7 +1003,7 @@ class _PassengerAppWidgetState extends State<PassengerAppWidget> {
                             ),
                             decoration: BoxDecoration(
                               color:
-                                  Sky4AllPalette.destructive.withOpacity(0.1),
+                                  Sky4AllPalette.destructive.withValues(alpha:0.1),
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Text(
@@ -1517,7 +1517,7 @@ class _PassengerSeatMapViewState extends State<_PassengerSeatMapView> {
             height: 320,
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: Sky4AllPalette.secondary.withOpacity(0.5),
+              color: Sky4AllPalette.secondary.withValues(alpha:0.5),
               borderRadius: BorderRadius.circular(12),
             ),
             child: SingleChildScrollView(

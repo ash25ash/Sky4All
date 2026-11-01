@@ -1,0 +1,62 @@
+INSERT INTO passengers DOCUMENTS ({
+  "_id": "p_popa_andreea",
+  "id": "p_popa_andreea",
+  "name": "Popa Andreea",
+  "seat": "C10",
+  "flightId": "BA123",
+  "flightDate": "31/10/2026",
+  "medicalConditions": []
+}), ({
+  "_id": "p_radoi_laura",
+  "id": "p_radoi_laura",
+  "name": "Radoi Laura",
+  "seat": "D5",
+  "flightId": "BA123",
+  "flightDate": "31/10/2026",
+  "medicalConditions": []
+}) ON ID CONFLICT DO UPDATE
+
+INSERT INTO stewards DOCUMENTS ({
+  "_id": "steward_patrutbm5d",
+  "id": "steward_patrutbm5d",
+  "username": "patrutbm5d",
+  "password": "123456",
+  "flightNumber": "BA123",
+  "flightDate": "31/10/2026",
+  "fullName": "Patrut B."
+}) ON ID CONFLICT DO UPDATE
+
+INSERT INTO requests DOCUMENTS ({
+  "_id": "_collection_init",
+  "id": "_collection_init",
+  "flightId": "BA123",
+  "flightDate": "31/10/2026"
+}) ON ID CONFLICT DO UPDATE
+
+INSERT INTO orders DOCUMENTS ({
+  "_id": "_collection_init",
+  "id": "_collection_init",
+  "flightId": "BA123",
+  "flightDate": "31/10/2026"
+}) ON ID CONFLICT DO UPDATE
+
+INSERT INTO seatComplaints DOCUMENTS ({
+  "_id": "_collection_init",
+  "id": "_collection_init",
+  "flightId": "BA123",
+  "flightDate": "31/10/2026"
+}) ON ID CONFLICT DO UPDATE
+
+INSERT INTO flightRatings DOCUMENTS ({
+  "_id": "_collection_init",
+  "id": "_collection_init",
+  "flightId": "BA123",
+  "flightDate": "31/10/2026"
+}) ON ID CONFLICT DO UPDATE
+
+INSERT INTO passengerRatings DOCUMENTS ({
+  "_id": "_collection_init",
+  "id": "_collection_init",
+  "flightId": "BA123",
+  "flightDate": "31/10/2026"
+}) ON ID CONFLICT DO UPDATE

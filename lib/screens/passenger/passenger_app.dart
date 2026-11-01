@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter/material.dart';
 import '../../config/ditto_config.dart';
 import '../../models/sky4all_models.dart';
 import '../../services/ditto_service.dart';

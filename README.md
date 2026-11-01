@@ -104,7 +104,7 @@
 
 ### Run the React / Vite Web Interface (Split View & Multi-Tab)
 ```cmd
-cd C:\Users\PC\Hackathon\Sky4AllDemo\sky4all-split
+cd Sky4All\Demo
 npm install
 npm run dev
 ```

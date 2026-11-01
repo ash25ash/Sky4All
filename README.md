@@ -32,7 +32,7 @@
 | Language | Role in Project |
 | :--- | :--- |
 | **Dart** | Cross-platform mobile/tablet/web application (`lib/`) and standalone SQL Server ⇄ Ditto sync server (`backend/sql_ditto_sync_server.dart`). |
-| **TypeScript (`.ts` / `.tsx`)** | React web applications (`sky4all-split`, `sky4all-pasager`, `sky4all-stewardesa`), Ditto data layer, and Vite SQL Server middleware. |
+| **TypeScript (`.ts` / `.tsx`)** | React web application (`sky4all-split`), Ditto data layer, and Vite SQL Server middleware. |
 | **JavaScript (ES2022)** | Standalone browser runtime and cross-tab P2P state synchronization (`web_html/index.html`). |
 | **HTML5 & CSS3** | Document structure, responsive mobile/tablet mockups, and keyframe animations. |
 | **T-SQL (Transact-SQL)** | Relational database schema, constraints, seed data, and stored procedures for SQL Server Management Studio 22 (`database/Sky4All.sql`). |

@@ -113,4 +113,9 @@ Open in your browser:
 - **Passenger View in its own tab**: `http://localhost:8080/p`
 - **Crew Steward View in its own tab**: `http://localhost:8080/s`
 
-
+### Information Login for Demo:
+#### Passengers:
+- **Name:** Popa Andreea, **Flight Number:** BA123, **Flight Date:** 31/10/2026, **Seat Number:** C10;
+- **Name:** Radoi Laura, **Flight Number:** BA123, **Flight Date:** 31/10/2026, **Seat Number:** D5.
+#### Staff Crew:
+- **username:** patrutbm5d, **password:** 123456.

@@ -1,0 +1,1541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sky4All — In-flight passenger–crew communication</title>
+  <link rel="icon" href="favicon.ico" type="image/x-icon" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            background: '#DCEBF7',
+            foreground: '#202A56',
+            card: '#FFFFFF',
+            'card-foreground': '#202A56',
+            primary: '#254785',
+            'primary-foreground': '#F7FAFF',
+            secondary: '#CEE2F2',
+            'secondary-foreground': '#202A56',
+            muted: '#D6E6F4',
+            'muted-foreground': '#536087',
+            accent: '#C2DEF4',
+            'accent-foreground': '#202A56',
+            destructive: '#DC2626',
+            'destructive-foreground': '#FAFAFC',
+            border: '#C5D5E8',
+            input: '#C5D5E8',
+            'seat-ok': '#47C486',
+            'seat-ok-foreground': '#103B26',
+            'seat-minor': '#F3C63B',
+            'seat-minor-foreground': '#5C4208',
+            'seat-urgent': '#E13329',
+            'seat-urgent-foreground': '#FFF8F7',
+            'seat-own': '#2F6EE5',
+            'seat-own-foreground': '#F7FAFF',
+            'product-photo': '#FFFFFF'
+          },
+          fontFamily: {
+            sans: ['Manrope', 'ui-sans-serif', 'system-ui', 'sans-serif']
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    body {
+      background-color: #DCEBF7;
+      color: #202A56;
+      font-family: "Manrope", ui-sans-serif, system-ui, sans-serif;
+    }
+    @keyframes pulse-red {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(225, 51, 41, 0.7); }
+      50% { box-shadow: 0 0 0 7px rgba(225, 51, 41, 0); }
+    }
+    .animate-pulse-red {
+      animation: pulse-red 1.2s ease-in-out infinite;
+    }
+  </style>
+</head>
+<body class="min-h-screen">
+  <div id="app"></div>
+
+  <script>
+    const DITTO_CONFIG = {
+      databaseId: "965957f9-6fd7-4d2f-8794-d8f1544c5724",
+      cloudUrl: "https://i83inp.cloud.dittolive.app",
+      cloudUrlEndpoint: "i83inp.cloud.dittolive.app/965957f9-6fd7-4d2f-8794-d8f1544c5724",
+      httpDqlEndpoint: "https://i83inp.cloud.dittolive.app/api/v4/store/execute",
+      sqlBridgeEndpoint: "http://localhost:3001/api/sync"
+    };
+
+    const REGISTERED_PASSENGERS = [
+      {
+        id: "p_popa_andreea",
+        name: "Popa Andreea",
+        flightId: "BA123",
+        flightDate: "31/10/2026",
+        seat: "C10",
+        medicalConditions: ["Asthma"]
+      },
+      {
+        id: "p_radoi_laura",
+        name: "Radoi Laura",
+        flightId: "BA123",
+        flightDate: "31/10/2026",
+        seat: "D5",
+        medicalConditions: ["Diabetes"]
+      }
+    ];
+
+    const REGISTERED_STEWARD = {
+      id: "steward_patrutbm5d",
+      username: "patrutbm5d",
+      password: "123456",
+      flightNumber: "BA123",
+      flightDate: "31/10/2026"
+    };
+
+    const ALLERGIES = [
+      { en: "Peanuts", ro: "Arahide" },
+      { en: "Tree nuts", ro: "Nuci" },
+      { en: "Milk / lactose", ro: "Lapte / lactoză" },
+      { en: "Eggs", ro: "Ouă" },
+      { en: "Gluten", ro: "Gluten" },
+      { en: "Soy", ro: "Soia" },
+      { en: "Fish", ro: "Pește" },
+      { en: "Shellfish", ro: "Fructe de mare" },
+      { en: "Sesame", ro: "Susan" },
+      { en: "Penicillin", ro: "Penicilină" },
+      { en: "Latex", ro: "Latex" },
+      { en: "Pollen", ro: "Polen" },
+      { en: "Other", ro: "Altele" }
+    ];
+
+    const EMERGENCIES = [
+      { en: "Cardiac problem", ro: "Problemă cardiacă" },
+      { en: "Hypoglycemia", ro: "Criză de hipoglicemie" },
+      { en: "Fainting", ro: "Stare de leșin" },
+      { en: "Dizziness", ro: "Amețeală" },
+      { en: "Breathing problems", ro: "Probleme respiratorii" }
+    ];
+
+    const PRODUCTS = [
+      { name: "Coca-Cola Original", detail: "330 ml", priceCents: 300, category: "drinks", image: "assets/menu-cola.jpg" },
+      { name: "Coca-Cola Zero Sugar", detail: "330 ml", priceCents: 300, category: "drinks", image: "assets/menu-cola-zero.jpg" },
+      { name: "Fanta Orange", detail: "330 ml", priceCents: 300, category: "drinks", image: "assets/menu-fanta.jpg" },
+      { name: "Sprite Lemon-Lime", detail: "330 ml", priceCents: 300, category: "drinks", image: "assets/menu-sprite.jpg" },
+      { name: "Pepsi", detail: "330 ml", priceCents: 300, category: "drinks", image: "assets/menu-pepsi.jpg" },
+      { name: "7UP", detail: "330 ml", priceCents: 300, category: "drinks", image: "assets/menu-7up.jpg" },
+      { name: "evian", detail: "500 ml", priceCents: 250, category: "drinks", image: "assets/menu-evian.jpg" },
+      { name: "Perrier", detail: "330 ml", priceCents: 350, category: "drinks", image: "assets/menu-perrier.jpg" },
+      { name: "San Pellegrino Aranciata", detail: "330 ml", priceCents: 350, category: "drinks", image: "assets/menu-sanpellegrino.jpg" },
+      { name: "Capri-Sun Apple", detail: "200 ml", priceCents: 250, category: "drinks", image: "assets/menu-caprisun.jpg" },
+      { name: "Lay’s Classic", detail: "40 g", priceCents: 250, category: "snacks", image: "assets/menu-lays.jpg" },
+      { name: "Lay’s Paprika", detail: "40 g", priceCents: 250, category: "snacks", image: "assets/menu-lays-paprika.jpg" },
+      { name: "Pringles Original", detail: "40 g", priceCents: 300, category: "snacks", image: "assets/menu-pringles.jpg" },
+      { name: "Doritos Nacho Cheese", detail: "45 g", priceCents: 300, category: "snacks", image: "assets/menu-doritos.jpg" },
+      { name: "Chio Tortillas Cheese", detail: "40 g", priceCents: 250, category: "snacks", image: "assets/menu-chio.jpg" },
+      { name: "Oreo Original", detail: "66 g", priceCents: 250, category: "snacks", image: "assets/menu-oreo.jpg" },
+      { name: "Snickers", detail: "50 g", priceCents: 250, category: "snacks", image: "assets/menu-snickers.jpg" },
+      { name: "M&M’s Peanut", detail: "45 g", priceCents: 300, category: "snacks", image: "assets/menu-mms.jpg" },
+      { name: "KitKat", detail: "45 g", priceCents: 250, category: "snacks", image: "assets/menu-kitkat.jpg" },
+      { name: "Twix", detail: "50 g", priceCents: 250, category: "snacks", image: "assets/menu-twix.jpg" },
+      { name: "Red Bull Original", detail: "250 ml", priceCents: 450, category: "drinks", image: "assets/menu-redbull.jpg" },
+      { name: "Lipton Ice Tea Peach", detail: "500 ml", priceCents: 350, category: "drinks", image: "assets/menu-lipton.jpg" },
+      { name: "Starbucks Frappuccino", detail: "250 ml", priceCents: 500, category: "drinks", image: "assets/menu-starbucks.jpg" },
+      { name: "innocent Smooth Orange", detail: "330 ml", priceCents: 400, category: "drinks", image: "assets/menu-innocent.jpg" },
+      { name: "Schweppes Indian Tonic", detail: "330 ml", priceCents: 300, category: "drinks", image: "assets/menu-schweppes.jpg" },
+      { name: "Haribo Goldbears", detail: "100 g", priceCents: 300, category: "snacks", image: "assets/menu-haribo.jpg" },
+      { name: "Kinder Bueno", detail: "43 g", priceCents: 300, category: "snacks", image: "assets/menu-kinder.jpg" },
+      { name: "Milka Alpine Milk", detail: "100 g", priceCents: 400, category: "snacks", image: "assets/menu-milka.jpg" },
+      { name: "Nutella & Go", detail: "52 g", priceCents: 350, category: "snacks", image: "assets/menu-nutella.jpg" },
+      { name: "Nature Valley Oats & Honey", detail: "42 g", priceCents: 250, category: "snacks", image: "assets/menu-naturevalley.jpg" },
+      { name: "Monster Energy", detail: "500 ml", priceCents: 400, category: "drinks", image: "assets/menu-monster.jpg" },
+      { name: "Fuze Tea Lemon", detail: "500 ml", priceCents: 300, category: "drinks", image: "assets/menu-fuzetea.jpg" },
+      { name: "Tropicana Orange", detail: "330 ml", priceCents: 350, category: "drinks", image: "assets/menu-tropicana.jpg" },
+      { name: "Heineken 0.0", detail: "330 ml", priceCents: 400, category: "drinks", image: "assets/menu-heineken.jpg" },
+      { name: "Nescafé Xpress Latte", detail: "250 ml", priceCents: 400, category: "drinks", image: "assets/menu-nescafe.jpg" },
+      { name: "Toblerone", detail: "100 g", priceCents: 450, category: "snacks", image: "assets/menu-toblerone.jpg" },
+      { name: "Bounty", detail: "57 g", priceCents: 250, category: "snacks", image: "assets/menu-bounty.jpg" },
+      { name: "Mars", detail: "51 g", priceCents: 250, category: "snacks", image: "assets/menu-mars.jpg" },
+      { name: "Lindt Lindor Milk", detail: "100 g", priceCents: 600, category: "snacks", image: "assets/menu-lindor.jpg" },
+      { name: "Pringles Sour Cream & Onion", detail: "40 g", priceCents: 300, category: "snacks", image: "assets/menu-pringles-sco.jpg" }
+    ];
+
+    function cartTotalCents(cart) {
+      return PRODUCTS.reduce((total, product) => total + product.priceCents * Math.max(0, cart[product.name] || 0), 0);
+    }
+
+    function formatPrice(cents, ro = false) {
+      return new Intl.NumberFormat(ro ? "ro-RO" : "en-IE", { style: "currency", currency: "EUR" }).format(cents / 100);
+    }
+
+    function normalizeSeat(seat) {
+      if (!seat) return "";
+      const s = String(seat).trim().toUpperCase();
+      const m = s.match(/^([A-F])(\d+)$/);
+      if (m) return `${m[2]}${m[1]}`;
+      return s;
+    }
+
+    function seatsMatch(a, b) {
+      return normalizeSeat(a) === normalizeSeat(b);
+    }
+
+    function normalizeNameWords(str) {
+      return String(str || "").trim().toLowerCase().split(/\s+/).filter(Boolean).sort().join(" ");
+    }
+
+    function verifyPassenger(name, flightNumber, flightDate, seatNumber) {
+      const normName = normalizeNameWords(name);
+      const normFlight = String(flightNumber || "").trim().toUpperCase();
+      const normDate = String(flightDate || "").trim();
+      const normSeat = normalizeSeat(seatNumber);
+
+      return REGISTERED_PASSENGERS.find(p =>
+        normalizeNameWords(p.name) === normName &&
+        p.flightId.toUpperCase() === normFlight &&
+        p.flightDate === normDate &&
+        normalizeSeat(p.seat) === normSeat
+      ) || null;
+    }
+
+    const dict = {
+      en: {
+        appName: "Sky4All",
+        flightPrompt: "Enter your flight details",
+        flightNumber: "Flight number",
+        flightDay: "Day of flight",
+        pickDay: "Select day",
+        flightNumberLabel: "Flight number",
+        flightDateLabel: "Flight date",
+        continue: "Continue",
+        selectSeat: "Select your seat",
+        row: "Row",
+        letter: "Letter",
+        useBoardingPass: "Use my boarding pass seat",
+        yourProfile: "Your profile (optional)",
+        name: "Name",
+        medicalConditions: "Medical conditions",
+        diabetes: "Diabetes",
+        asthma: "Asthma",
+        heartCondition: "Heart condition",
+        epilepsy: "Epilepsy",
+        pregnancy: "Pregnancy",
+        allergies: "Allergies",
+        none: "None",
+        save: "Save",
+        skip: "Skip",
+        medicalEmergency: "Medical emergency",
+        confirmEmergency: "Tap again to confirm the medical emergency",
+        callSteward: "Call a steward",
+        orderSnacks: "Order snacks & drinks",
+        rateFlight: "Rate the flight",
+        seatMap: "Seat map",
+        cart: "Cart",
+        sendOrder: "Send order",
+        orderSent: "Order sent to the crew",
+        yourRequests: "Your requests",
+        statusSent: "Sent over air",
+        statusSeen: "Seen by steward",
+        statusInProgress: "In progress",
+        statusResolved: "Resolved",
+        turbulence: "Turbulence",
+        staffBehaviour: "Staff behaviour",
+        cleanliness: "Cleanliness",
+        legroom: "Legroom",
+        bagSpace: "Bag space",
+        comment: "Comment (optional)",
+        submitRating: "Submit rating",
+        thanks: "Thank you for your feedback!",
+        complaintAbout: "Complaint about seat",
+        noise: "Noise",
+        behaviour: "Behaviour",
+        other: "Other",
+        describe: "Describe the issue",
+        send: "Send",
+        cancel: "Cancel",
+        tapSeatToComplain: "Tap a seat to file a complaint. Your seat is highlighted.",
+        back: "Back",
+        yourSeat: "Your seat",
+        urgent: "Urgent",
+        calls: "Calls",
+        orders: "Orders",
+        complaints: "Complaints",
+        feedbackTab: "Complaints & feedback",
+        anonymous: "Anonymous",
+        seen: "Seen",
+        inProgress: "In progress",
+        resolved: "Resolved",
+        markSeen: "Mark seen",
+        startProgress: "Start",
+        resolve: "Resolve",
+        ratePassenger: "Rate passenger",
+        score: "Score",
+        note: "Note",
+        endFlight: "End flight & upload",
+        uploading: "Uploading to server…",
+        uploadComplete: "Flight data uploaded successfully",
+        requestsFor: "Seat",
+        medicalLabel: "Medical conditions",
+        ratingHistory: "Rating history",
+        noData: "Nothing here yet",
+        simulate: "Simulate",
+        simMedical: "Medical emergency",
+        simCall: "Call steward",
+        simOrder: "Order",
+        simComplaint: "Seat complaint",
+        simBadReview: "Very bad review",
+        reset: "Reset",
+        passenger: "Passenger",
+        steward: "Steward",
+        openPassenger: "Open passenger view",
+        openSteward: "Open steward view",
+        liveDemo: "Live demo — both screens share one mock Ditto store",
+        emptyTab: "No items",
+        avg: "avg",
+        stewardLoginTitle: "Crew Steward Sign In",
+        username: "Username",
+        password: "Password",
+        signIn: "Sign In",
+        invalidCredentials: "Invalid username or password."
+      },
+      ro: {
+        appName: "Sky4All",
+        flightPrompt: "Introdu datele zborului",
+        flightNumber: "Numărul zborului",
+        flightDay: "Ziua zborului",
+        pickDay: "Alege ziua",
+        flightNumberLabel: "Numărul zborului",
+        flightDateLabel: "Data zborului",
+        continue: "Continuă",
+        selectSeat: "Alege locul tău",
+        row: "Rând",
+        letter: "Literă",
+        useBoardingPass: "Folosește locul de pe cartea de îmbarcare",
+        yourProfile: "Profilul tău (opțional)",
+        name: "Nume",
+        medicalConditions: "Condiții medicale",
+        diabetes: "Diabet",
+        asthma: "Astm",
+        heartCondition: "Afecțiuni cardiace",
+        epilepsy: "Epilepsie",
+        pregnancy: "Sarcină",
+        allergies: "Alergii",
+        none: "Niciuna",
+        save: "Salvează",
+        skip: "Omite",
+        medicalEmergency: "Urgență medicală",
+        confirmEmergency: "Apasă din nou pentru a confirma urgența medicală",
+        callSteward: "Cheamă un steward",
+        orderSnacks: "Comandă gustări și băuturi",
+        rateFlight: "Evaluează zborul",
+        seatMap: "Harta locurilor",
+        cart: "Coș",
+        sendOrder: "Trimite comanda",
+        orderSent: "Comanda a fost trimisă echipajului",
+        yourRequests: "Cererile tale",
+        statusSent: "Trimisă prin aer",
+        statusSeen: "Văzută de steward",
+        statusInProgress: "În lucru",
+        statusResolved: "Rezolvată",
+        turbulence: "Turbulențe",
+        staffBehaviour: "Comportamentul personalului",
+        cleanliness: "Curățenie",
+        legroom: "Spațiu pentru picioare",
+        bagSpace: "Spațiu pentru bagaje",
+        comment: "Comentariu (opțional)",
+        submitRating: "Trimite evaluarea",
+        thanks: "Mulțumim pentru feedback!",
+        complaintAbout: "Reclamație pentru locul",
+        noise: "Zgomot",
+        behaviour: "Comportament",
+        other: "Altele",
+        describe: "Descrie problema",
+        send: "Trimite",
+        cancel: "Anulează",
+        tapSeatToComplain: "Atinge un loc pentru a face o reclamație. Locul tău este evidențiat.",
+        back: "Înapoi",
+        yourSeat: "Locul tău",
+        urgent: "Urgente",
+        calls: "Apeluri",
+        orders: "Comenzi",
+        complaints: "Reclamații",
+        feedbackTab: "Reclamații & feedback",
+        anonymous: "Anonim",
+        seen: "Văzut",
+        inProgress: "În lucru",
+        resolved: "Rezolvat",
+        markSeen: "Marchează văzut",
+        startProgress: "Începe",
+        resolve: "Rezolvă",
+        ratePassenger: "Evaluează pasagerul",
+        score: "Scor",
+        note: "Notă",
+        endFlight: "Încheie zborul și încarcă",
+        uploading: "Se încarcă pe server…",
+        uploadComplete: "Datele zborului au fost încărcate cu succes",
+        requestsFor: "Locul",
+        medicalLabel: "Condiții medicale",
+        ratingHistory: "Istoric evaluări",
+        noData: "Nimic aici încă",
+        simulate: "Simulare",
+        simMedical: "Urgență medicală",
+        simCall: "Apel steward",
+        simOrder: "Comandă",
+        simComplaint: "Reclamație loc",
+        simBadReview: "Recenzie foarte proastă",
+        reset: "Resetează",
+        passenger: "Pasager",
+        steward: "Steward",
+        openPassenger: "Deschide vizualizarea pasagerului",
+        openSteward: "Deschide vizualizarea stewardului",
+        liveDemo: "Demo live — ambele ecrane împart același store Ditto simulat",
+        emptyTab: "Niciun element",
+        avg: "medie",
+        stewardLoginTitle: "Autentificare Steward Echipaj",
+        username: "Utilizator",
+        password: "Parolă",
+        signIn: "Autentificare",
+        invalidCredentials: "Utilizator sau parolă incorectă."
+      }
+    };
+
+    const store = {
+      passengers: new Map(),
+      requests: new Map(),
+      orders: new Map(),
+      flightRatings: new Map(),
+      seatComplaints: new Map(),
+      passengerRatings: new Map()
+    };
+
+    let counter = 0;
+    function nextId(prefix) {
+      counter += 1;
+      return `${prefix}_${Date.now().toString(36)}_${counter}`;
+    }
+
+    function insert(col, doc) {
+      const id = doc.id || nextId(col);
+      const record = { ...doc, id };
+      store[col].set(id, record);
+      pushToDittoBigPeer(col, record);
+      render();
+      return id;
+    }
+
+    function update(col, id, patch) {
+      const cur = store[col].get(id);
+      if (!cur) return;
+      const updated = { ...cur, ...patch };
+      store[col].set(id, updated);
+      pushToDittoBigPeer(col, updated);
+      render();
+    }
+
+    function all(col) {
+      return Array.from(store[col].values());
+    }
+
+    async function pushToDittoBigPeer(col, doc) {
+      try {
+        await fetch(DITTO_CONFIG.httpDqlEndpoint, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-Ditto-Database-Id": DITTO_CONFIG.databaseId
+          },
+          body: JSON.stringify({
+            statement: `INSERT INTO ${col} DOCUMENTS (${JSON.stringify({ _id: doc.id, ...doc })}) ON ID CONFLICT DO UPDATE`
+          })
+        });
+      } catch (_) {}
+    }
+
+    function seed() {
+      Object.keys(store).forEach(k => store[k].clear());
+    }
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const state = {
+      lang: "en",
+      appMode: urlParams.get("mode") || "split",
+      dittoStatus: "demo",
+      pFlightId: null,
+      pCode: "",
+      pFlightDay: "",
+      pSeat: null,
+      pRow: 1,
+      pLetter: "A",
+      pName: "",
+      pConditions: [],
+      pAllergies: [],
+      pOtherAllergy: "",
+      pProfileDone: false,
+      pView: "home",
+      pConfirmingEmergency: false,
+      pOtherEmergency: "",
+      pComplaintSeat: null,
+      pComplaintCategory: "noise",
+      pComplaintText: "",
+      pOrderCategory: "all",
+      pCart: {},
+      pOrderSent: false,
+      pRateScores: {},
+      pRateComment: "",
+      pRateDone: false,
+      sLoggedIn: false,
+      sUsername: "",
+      sPassword: "",
+      sFlightNumber: "",
+      sFlightDate: "",
+      sLoginError: "",
+      sTab: "urgent",
+      sSelectedSeat: null,
+      sPaxScore: 3,
+      sPaxNote: "",
+      sUploadProgress: null
+    };
+
+    function t(key) {
+      return (dict[state.lang] && dict[state.lang][key]) || dict.en[key] || key;
+    }
+
+    function beep() {
+      try {
+        const Ctx = window.AudioContext || window.webkitAudioContext;
+        const ctx = new Ctx();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = "sine";
+        osc.frequency.value = 880;
+        gain.gain.setValueAtTime(0.15, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
+        osc.connect(gain).connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.4);
+      } catch (_) {}
+    }
+
+    window.setLang = (l) => { state.lang = l; render(); };
+    window.setAppMode = (m) => { state.appMode = m; render(); };
+
+    window.toggleCondition = (c) => {
+      if (c === "none") {
+        state.pConditions = ["none"];
+      } else {
+        state.pConditions = state.pConditions.filter(x => x !== "none");
+        if (state.pConditions.includes(c)) {
+          state.pConditions = state.pConditions.filter(x => x !== c);
+        } else {
+          state.pConditions.push(c);
+        }
+      }
+      render();
+    };
+
+    window.toggleAllergy = (enName) => {
+      if (state.pAllergies.includes(enName)) {
+        state.pAllergies = state.pAllergies.filter(x => x !== enName);
+      } else {
+        state.pAllergies.push(enName);
+      }
+      render();
+    };
+
+    window.finishProfile = (skip) => {
+      if (!skip && state.pSeat && state.pFlightId) {
+        const verified = verifyPassenger(
+          state.pName,
+          state.pFlightId,
+          state.pFlightDay || "31/10/2026",
+          state.pSeat
+        );
+        const conds = state.pConditions.filter(c => c !== "none").map(c => {
+          if (c !== "allergies") return t(c);
+          const list = state.pAllergies.filter(a => a !== "Other").map(a => ALLERGIES.find(x => x.en === a)[state.lang]);
+          if (state.pAllergies.includes("Other") && state.pOtherAllergy.trim()) {
+            list.push(state.pOtherAllergy.trim());
+          }
+          return list.length ? `${t(c)}: ${list.join(", ")}` : t(c);
+        });
+        insert("passengers", {
+          ...(verified ? { id: verified.id } : {}),
+          name: verified ? verified.name : (state.pName.trim() || "Anonymous"),
+          seat: state.pSeat,
+          flightId: state.pFlightId,
+          flightDate: state.pFlightDay || "31/10/2026",
+          medicalConditions: conds.length ? conds : (verified ? verified.medicalConditions : [])
+        });
+      }
+      state.pProfileDone = true;
+      render();
+    };
+
+    window.sendMedicalEmergency = (emergencyText) => {
+      if (!state.pSeat || !emergencyText) return;
+      state.pConfirmingEmergency = false;
+      state.pOtherEmergency = "";
+      beep();
+      insert("requests", {
+        type: "medical_emergency",
+        seat: state.pSeat,
+        payload: {
+          emergency: emergencyText,
+          conditions: state.pConditions.filter(c => c !== "none").map(c => t(c))
+        },
+        status: "new",
+        createdAt: Date.now()
+      });
+    };
+
+    window.callStewardAction = () => {
+      if (!state.pSeat) return;
+      insert("requests", {
+        type: "call_steward",
+        seat: state.pSeat,
+        status: "new",
+        createdAt: Date.now()
+      });
+    };
+
+    window.setPassengerView = (v) => {
+      state.pView = v;
+      if (v === "order") state.pOrderSent = false;
+      if (v === "rate") state.pRateDone = false;
+      render();
+    };
+
+    window.bumpCart = (name, delta) => {
+      const cur = state.pCart[name] || 0;
+      const next = Math.max(0, cur + delta);
+      if (next === 0) delete state.pCart[name];
+      else state.pCart[name] = next;
+      render();
+    };
+
+    window.sendOrderAction = () => {
+      if (!state.pSeat) return;
+      const entries = Object.entries(state.pCart).filter(([, q]) => q > 0);
+      if (!entries.length) return;
+      const orderItems = entries.map(([name, qty]) => ({ name, qty }));
+      insert("orders", { seat: state.pSeat, items: orderItems, status: "new", createdAt: Date.now() });
+      insert("requests", { type: "order", seat: state.pSeat, payload: { items: orderItems }, status: "new", createdAt: Date.now() });
+      state.pOrderSent = true;
+      render();
+    };
+
+    window.submitFlightRating = () => {
+      if (!state.pSeat) return;
+      insert("flightRatings", {
+        seat: state.pSeat,
+        turbulence: state.pRateScores.turbulence || 3,
+        staffBehaviour: state.pRateScores.staffBehaviour || 3,
+        cleanliness: state.pRateScores.cleanliness || 3,
+        legroom: state.pRateScores.legroom || 3,
+        bagSpace: state.pRateScores.bagSpace || 3,
+        ...(state.pRateComment ? { comment: state.pRateComment } : {}),
+        createdAt: Date.now()
+      });
+      state.pRateDone = true;
+      render();
+      setTimeout(() => {
+        state.pRateDone = false;
+        state.pView = "home";
+        render();
+      }, 1500);
+    };
+
+    window.submitSeatComplaint = () => {
+      if (!state.pComplaintSeat || !state.pSeat) return;
+      insert("seatComplaints", {
+        fromSeat: state.pSeat,
+        targetSeat: state.pComplaintSeat,
+        category: state.pComplaintCategory,
+        text: state.pComplaintText,
+        createdAt: Date.now()
+      });
+      insert("requests", {
+        type: "complaint",
+        seat: state.pSeat,
+        payload: {
+          targetSeat: state.pComplaintSeat,
+          category: state.pComplaintCategory,
+          text: state.pComplaintText
+        },
+        status: "new",
+        createdAt: Date.now()
+      });
+      state.pComplaintSeat = null;
+      state.pComplaintText = "";
+      render();
+    };
+
+    window.loginSteward = () => {
+      if (state.sUsername.trim() === REGISTERED_STEWARD.username &&
+          state.sPassword.trim() === REGISTERED_STEWARD.password) {
+        state.sLoggedIn = true;
+        state.sLoginError = "";
+        state.sFlightNumber = REGISTERED_STEWARD.flightNumber;
+        state.sFlightDate = REGISTERED_STEWARD.flightDate;
+      } else {
+        state.sLoginError = t("invalidCredentials");
+      }
+      render();
+    };
+
+    window.logoutSteward = () => {
+      state.sLoggedIn = false;
+      state.sFlightNumber = "";
+      state.sFlightDate = "";
+      state.sUsername = "";
+      state.sPassword = "";
+      render();
+    };
+
+    window.advanceItem = (col, id, status) => {
+      const nextMap = { new: "seen", seen: "in_progress", in_progress: "resolved", resolved: null };
+      const n = nextMap[status];
+      if (n) update(col, id, { status: n });
+    };
+
+    window.updateItemStatus = (col, id, newStatus) => {
+      update(col, id, { status: newStatus });
+    };
+
+    window.submitPassengerRating = () => {
+      if (!state.sSelectedSeat) return;
+      insert("passengerRatings", {
+        seat: state.sSelectedSeat,
+        score: Number(state.sPaxScore) || 3,
+        note: state.sPaxNote,
+        createdAt: Date.now()
+      });
+      state.sPaxNote = "";
+      render();
+    };
+
+    window.startEndFlightUpload = async () => {
+      state.sUploadProgress = 0;
+      render();
+      const cols = ["passengers", "requests", "orders", "flightRatings", "seatComplaints", "passengerRatings"];
+      for (const col of cols) {
+        for (const item of all(col)) {
+          await pushToDittoBigPeer(col, item);
+        }
+      }
+      try {
+        await fetch(`${DITTO_CONFIG.sqlBridgeEndpoint}/post-flight`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            databaseId: DITTO_CONFIG.databaseId,
+            cloudUrlEndpoint: DITTO_CONFIG.cloudUrlEndpoint,
+            flightNumber: "BA123",
+            flightDate: "31/10/2026",
+            collections: {
+              passengers: all("passengers"),
+              requests: all("requests"),
+              orders: all("orders"),
+              flightRatings: all("flightRatings"),
+              seatComplaints: all("seatComplaints"),
+              passengerRatings: all("passengerRatings")
+            }
+          })
+        });
+      } catch (_) {}
+
+      const interval = setInterval(() => {
+        state.sUploadProgress = Math.min(100, (state.sUploadProgress || 0) + 10);
+        render();
+        if (state.sUploadProgress >= 100) clearInterval(interval);
+      }, 100);
+    };
+
+    function renderLangSwitcher() {
+      return `
+        <div class="inline-flex overflow-hidden rounded-full border border-border bg-card text-xs font-semibold">
+          ${["en", "ro"].map(code => `
+            <button onclick="setLang('${code}')" class="px-3 py-1 uppercase transition-colors ${state.lang === code ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}">
+              ${code}
+            </button>
+          `).join("")}
+        </div>
+      `;
+    }
+
+    function renderSeatMap(getStatusFn, onClickFnName, selectedSeat) {
+      const letters = ["A", "B", "C", "D", "E", "F"];
+      let rowsHtml = "";
+      for (let r = 1; r <= 30; r++) {
+        const leftSeats = letters.slice(0, 3).map(l => renderSingleSeat(`${r}${l}`, l, getStatusFn, onClickFnName, selectedSeat)).join("");
+        const rightSeats = letters.slice(3).map(l => renderSingleSeat(`${r}${l}`, l, getStatusFn, onClickFnName, selectedSeat)).join("");
+        rowsHtml += `
+          <div class="grid grid-cols-[repeat(3,auto)_1.25rem_repeat(3,auto)] items-center gap-1">
+            ${leftSeats}
+            <span class="text-center font-semibold text-muted-foreground text-[8px]">${r}</span>
+            ${rightSeats}
+          </div>
+        `;
+      }
+      return `
+        <div class="flex flex-col items-center gap-1">
+          <div class="mb-1 grid grid-cols-[repeat(3,auto)_1.25rem_repeat(3,auto)] gap-1 text-[8px] font-bold text-muted-foreground">
+            ${letters.slice(0, 3).map(l => `<span class="flex h-6 w-6 items-center justify-center">${l}</span>`).join("")}
+            <span></span>
+            ${letters.slice(3).map(l => `<span class="flex h-6 w-6 items-center justify-center">${l}</span>`).join("")}
+          </div>
+          ${rowsHtml}
+        </div>
+      `;
+    }
+
+    function renderSingleSeat(seatCode, letter, getStatusFn, onClickFnName, selectedSeat) {
+      const st = getStatusFn(seatCode);
+      const isSelected = selectedSeat && seatsMatch(selectedSeat, seatCode);
+      const classes = {
+        ok: "bg-seat-ok text-seat-ok-foreground",
+        minor: "bg-seat-minor text-seat-minor-foreground",
+        urgent: "bg-seat-urgent text-seat-urgent-foreground animate-pulse-red",
+        own: "bg-seat-own text-seat-own-foreground ring-2 ring-white/50",
+        idle: "bg-muted text-muted-foreground"
+      }[st] || "bg-muted text-muted-foreground";
+
+      return `
+        <button type="button" onclick="${onClickFnName}('${seatCode}')"
+          class="flex h-6 w-6 text-[9px] items-center justify-center rounded-md font-bold transition-transform hover:scale-110 ${classes} ${isSelected ? 'ring-2 ring-foreground' : ''}">
+          ${letter}
+        </button>
+      `;
+    }
+
+    window.onPassengerSeatClick = (seatCode) => {
+      if (state.pSeat && !seatsMatch(seatCode, state.pSeat)) {
+        state.pComplaintSeat = seatCode;
+        render();
+      }
+    };
+
+    window.onStewardSeatClick = (seatCode) => {
+      state.sSelectedSeat = seatCode;
+      render();
+    };
+
+    function renderPassengerApp() {
+      let content = "";
+      const ro = state.lang === "ro";
+
+      if (!state.pFlightId) {
+        content = `
+          <div class="-mx-3 -mb-3 flex flex-1 flex-col gap-4 overflow-hidden rounded-t-2xl bg-card p-5 shadow-sm">
+            <div class="flex flex-col gap-3 p-4">
+              <p class="text-center text-sm font-semibold text-foreground">${t("flightPrompt")}</p>
+              <div class="flex flex-col gap-2">
+                <label class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">${t("flightNumber")}</label>
+                <input value="${state.pCode}" oninput="state.pCode=this.value.toUpperCase();render()"
+                  class="w-full rounded-xl border border-input bg-background px-3 py-2 text-sm" />
+              </div>
+              <div class="flex flex-col gap-2">
+                <label class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">${t("flightDay")}</label>
+                <input type="date" value="${state.pFlightDay}" oninput="state.pFlightDay=this.value;render()"
+                  class="w-full rounded-xl border border-input bg-background px-3 py-2 text-sm" />
+              </div>
+              <button onclick="if(state.pCode.trim()){state.pFlightId=state.pCode.trim();render();}" ${!state.pCode.trim() ? 'disabled' : ''}
+                class="mt-1 w-full rounded-xl bg-primary px-4 py-3 text-base font-bold text-primary-foreground disabled:opacity-50">
+                ${t("continue")}
+              </button>
+            </div>
+            <div class="relative -mx-5 -mb-5 mt-1 min-h-[13rem] flex-1 overflow-hidden">
+              <img src="assets/airplane.png" alt="Airplane above the clouds" class="absolute inset-0 h-full w-full object-cover object-center" />
+              <div class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-primary/80 to-transparent px-4 pb-5 pt-12">
+                <p class="text-center text-base font-extrabold uppercase tracking-[0.2em] text-primary-foreground drop-shadow">
+                  “Your comfort, our priority”
+                </p>
+              </div>
+            </div>
+          </div>
+        `;
+      } else if (!state.pSeat) {
+        content = `
+          <div class="flex flex-col gap-4 rounded-2xl bg-card p-5 shadow-sm">
+            <h2 class="text-lg font-bold">${t("selectSeat")}</h2>
+            <div class="flex gap-3">
+              <label class="flex flex-1 flex-col gap-1 text-sm font-semibold">
+                ${t("row")}
+                <select onchange="state.pRow=Number(this.value);render()" class="rounded-xl border border-input bg-background px-3 py-3">
+                  ${Array.from({length: 30}, (_, i) => `<option value="${i+1}" ${state.pRow === i+1 ? 'selected' : ''}>${i+1}</option>`).join("")}
+                </select>
+              </label>
+              <label class="flex flex-1 flex-col gap-1 text-sm font-semibold">
+                ${t("letter")}
+                <select onchange="state.pLetter=this.value;render()" class="rounded-xl border border-input bg-background px-3 py-3">
+                  ${["A","B","C","D","E","F"].map(l => `<option value="${l}" ${state.pLetter === l ? 'selected' : ''}>${l}</option>`).join("")}
+                </select>
+              </label>
+            </div>
+            <button onclick="state.pSeat=state.pRow+state.pLetter;render()"
+              class="rounded-xl bg-primary px-4 py-3 text-base font-bold text-primary-foreground">
+              ${t("continue")}
+            </button>
+          </div>
+        `;
+      } else if (!state.pProfileDone) {
+        const conds = ["diabetes","asthma","heartCondition","epilepsy","pregnancy","allergies","none"];
+        content = `
+          <div class="overflow-hidden rounded-2xl bg-card shadow-sm">
+            <div class="flex items-center gap-3 bg-primary px-5 py-4 text-primary-foreground">
+              <h2 class="min-w-0 flex-1 truncate text-lg font-extrabold leading-tight">${state.pName.trim() || t("yourProfile")}</h2>
+              <div class="flex items-center gap-1 rounded-full bg-white/20 px-3 py-1 text-sm font-bold">💺 ${state.pSeat}</div>
+            </div>
+            <div class="flex flex-col gap-4 p-5">
+              <label class="flex flex-col gap-1.5">
+                <span class="text-xs font-bold uppercase tracking-wide text-muted-foreground">${t("name")}</span>
+                <input value="${state.pName}" oninput="state.pName=this.value;render()" placeholder="${t("name")}"
+                  class="rounded-xl border border-input bg-background px-4 py-3 text-base" />
+              </label>
+              <div class="flex flex-col gap-2">
+                <span class="text-xs font-bold uppercase tracking-wide text-muted-foreground">${t("medicalConditions")}</span>
+                <div class="grid grid-cols-2 gap-2">
+                  ${conds.map(c => {
+                    const on = state.pConditions.includes(c);
+                    return `
+                      <button onclick="toggleCondition('${c}')"
+                        class="flex items-center gap-2 rounded-xl border-2 px-3 py-3 text-left text-sm font-semibold transition-colors ${on ? 'border-primary bg-accent text-accent-foreground' : 'border-border bg-background text-foreground'} ${c === 'none' ? 'col-span-2 justify-center' : ''}">
+                        <span class="flex h-5 w-5 shrink-0 items-center justify-center rounded-md border-2 text-xs ${on ? 'border-primary bg-primary text-primary-foreground' : 'border-muted-foreground'}">${on ? '✓' : ''}</span>
+                        ${t(c)}
+                      </button>
+                    `;
+                  }).join("")}
+                </div>
+                ${state.pConditions.includes("allergies") ? `
+                  <div class="mt-1 flex flex-col gap-2 rounded-xl bg-secondary/60 p-3">
+                    <span class="text-xs font-bold uppercase tracking-wide text-muted-foreground">${ro ? "Alege alergiile" : "Choose your allergies"}</span>
+                    <div class="flex flex-wrap gap-2">
+                      ${ALLERGIES.map(a => {
+                        const on = state.pAllergies.includes(a.en);
+                        return `
+                          <button onclick="toggleAllergy('${a.en}')"
+                            class="rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${on ? 'bg-primary text-primary-foreground' : 'bg-background text-foreground border border-border'}">
+                            ${a[state.lang]}
+                          </button>
+                        `;
+                      }).join("")}
+                    </div>
+                    ${state.pAllergies.includes("Other") ? `
+                      <input value="${state.pOtherAllergy}" oninput="state.pOtherAllergy=this.value"
+                        placeholder="${ro ? 'Scrie alergia...' : 'Type your allergy...'}"
+                        class="rounded-xl border border-input bg-background px-3 py-2 text-sm" />
+                    ` : ""}
+                  </div>
+                ` : ""}
+              </div>
+              <div class="flex flex-col gap-2 pt-1">
+                <button onclick="finishProfile(false)" class="rounded-xl bg-primary px-4 py-3.5 text-base font-bold text-primary-foreground shadow-sm">${t("save")}</button>
+                <button onclick="finishProfile(true)" class="py-2 text-sm font-semibold text-muted-foreground underline">${t("skip")}</button>
+              </div>
+            </div>
+          </div>
+        `;
+      } else if (state.pView === "order") {
+        const entries = Object.entries(state.pCart).filter(([,q])=>q>0);
+        const count = entries.reduce((s,[,q])=>s+q,0);
+        const total = cartTotalCents(state.pCart);
+        if (state.pOrderSent) {
+          content = `
+            <div class="flex flex-col items-center gap-4 rounded-lg bg-card px-5 py-8 text-center">
+              <div class="flex h-14 w-14 items-center justify-center rounded-full bg-seat-ok text-seat-ok-foreground font-bold text-xl">✓</div>
+              <h2 class="text-lg font-bold">${t("orderSent")}</h2>
+              <p class="text-sm text-muted-foreground">${t("yourSeat")} ${state.pSeat} · ${count} ${ro ? 'produse' : 'items'}</p>
+              <ul class="w-full divide-y divide-border text-left">
+                ${entries.map(([name, qty]) => `<li class="flex justify-between gap-3 py-3 text-sm"><span>${name}</span><span class="font-bold">×${qty}</span></li>`).join("")}
+              </ul>
+              <p class="flex w-full justify-between border-t border-border pt-3 font-bold"><span>Total</span><span>${formatPrice(total, ro)}</span></p>
+              <button onclick="setPassengerView('home')" class="w-full rounded-xl bg-primary py-3 text-sm font-bold text-primary-foreground">← ${t("back")}</button>
+            </div>
+          `;
+        } else {
+          const filtered = PRODUCTS.filter(p => state.pOrderCategory === "all" || p.category === state.pOrderCategory);
+          content = `
+            <div class="flex flex-col gap-4">
+              <div class="flex items-center justify-between gap-2">
+                <button onclick="setPassengerView('home')" class="text-sm font-bold text-primary">← ${t("back")}</button>
+                <span class="text-xs font-semibold text-muted-foreground">${t("yourSeat")} <span class="text-foreground font-bold">${state.pSeat}</span></span>
+              </div>
+              <header>
+                <p class="mb-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">SKY4ALL · ${ro ? "MENIU LA BORD" : "ONBOARD MENU"}</p>
+                <h2 class="text-2xl font-extrabold">${ro ? "Gustări și băuturi" : "Snacks & drinks"}</h2>
+                <p class="mt-1 text-xs text-muted-foreground">${ro ? "40 de produse · Prețuri demonstrative în EUR" : "40 products · Demo prices in EUR"}</p>
+              </header>
+              <div class="flex gap-1 rounded-lg bg-secondary/60 p-1">
+                ${[
+                  { id: "all", label: ro ? "Toate" : "All" },
+                  { id: "drinks", label: ro ? "Băuturi" : "Drinks" },
+                  { id: "snacks", label: ro ? "Gustări" : "Snacks" }
+                ].map(tab => `
+                  <button onclick="state.pOrderCategory='${tab.id}';render()"
+                    class="flex-1 rounded-md py-1.5 text-xs font-bold ${state.pOrderCategory === tab.id ? 'bg-primary text-primary-foreground' : 'text-foreground'}">
+                    ${tab.label}
+                  </button>
+                `).join("")}
+              </div>
+              <div class="grid grid-cols-2 gap-3">
+                ${filtered.map(prod => `
+                  <article class="overflow-hidden rounded-lg border border-border bg-card">
+                    <div class="aspect-square overflow-hidden bg-white p-2">
+                      <img src="${prod.image}" alt="${prod.name}" class="h-full w-full object-contain" />
+                    </div>
+                    <div class="flex flex-col gap-2 p-3">
+                      <h3 class="min-h-[2.5rem] text-sm font-bold leading-5">${prod.name}</h3>
+                      <div class="flex flex-wrap items-center justify-between gap-1">
+                        <p class="text-xs text-muted-foreground">${prod.detail}</p>
+                        <span class="text-sm font-bold text-primary">${formatPrice(prod.priceCents, ro)}</span>
+                      </div>
+                      <div class="flex items-center justify-between gap-1 border-t border-border pt-2">
+                        <button onclick="bumpCart('${prod.name.replace(/'/g, "\\'")}', -1)" class="h-8 w-8 rounded-md bg-secondary font-bold">-</button>
+                        <span class="text-sm font-bold">${state.pCart[prod.name] || 0}</span>
+                        <button onclick="bumpCart('${prod.name.replace(/'/g, "\\'")}', 1)" class="h-8 w-8 rounded-md bg-primary text-primary-foreground font-bold">+</button>
+                      </div>
+                    </div>
+                  </article>
+                `).join("")}
+              </div>
+              <footer class="sticky bottom-0 z-10 border-t border-border bg-background py-3">
+                <div class="mb-2 flex justify-between text-sm font-bold">
+                  <span>${ro ? "Total comandă" : "Order total"}</span>
+                  <span>${formatPrice(total, ro)}</span>
+                </div>
+                <button onclick="sendOrderAction()" ${!count ? 'disabled' : ''}
+                  class="flex h-12 w-full items-center justify-between rounded-xl bg-primary px-4 font-bold text-primary-foreground disabled:opacity-50">
+                  <span>${t("sendOrder")}</span>
+                  <span class="flex h-6 w-6 items-center justify-center rounded-full bg-white/20 text-xs">${count}</span>
+                </button>
+              </footer>
+            </div>
+          `;
+        }
+      } else if (state.pView === "rate") {
+        if (state.pRateDone) {
+          content = `<div class="rounded-2xl bg-card p-6 text-center text-base font-bold text-seat-ok-foreground shadow-sm">${t("thanks")}</div>`;
+        } else {
+          const cats = ["turbulence", "staffBehaviour", "cleanliness", "legroom", "bagSpace"];
+          content = `
+            <div class="flex flex-col gap-3 rounded-2xl bg-card p-4 shadow-sm">
+              <button onclick="setPassengerView('home')" class="text-left text-sm font-bold text-primary">← ${t("back")}</button>
+              <h2 class="text-lg font-bold">${t("rateFlight")}</h2>
+              ${cats.map(cat => `
+                <div class="flex items-center justify-between gap-2">
+                  <span class="text-sm font-semibold">${t(cat)}</span>
+                  <div class="flex gap-1">
+                    ${[1,2,3,4,5].map(n => `
+                      <button onclick="state.pRateScores['${cat}']=${n};render()" class="text-xl ${(state.pRateScores[cat]||0) >= n ? 'text-seat-minor' : 'text-muted-foreground'}">★</button>
+                    `).join("")}
+                  </div>
+                </div>
+              `).join("")}
+              <textarea oninput="state.pRateComment=this.value" placeholder="${t("comment")}" rows="2"
+                class="rounded-xl border border-input bg-background px-3 py-2 text-sm">${state.pRateComment}</textarea>
+              <button onclick="submitFlightRating()" class="rounded-xl bg-primary px-4 py-3 text-base font-bold text-primary-foreground">
+                ${t("submitRating")}
+              </button>
+            </div>
+          `;
+        }
+      } else if (state.pView === "seatmap") {
+        const seatMapHtml = renderSeatMap(
+          (s) => seatsMatch(s, state.pSeat) ? "own" : "idle",
+          "onPassengerSeatClick",
+          state.pComplaintSeat
+        );
+        content = `
+          <div class="flex flex-col gap-3 rounded-2xl bg-card p-4 shadow-sm">
+            <button onclick="setPassengerView('home')" class="text-left text-sm font-bold text-primary">← ${t("back")}</button>
+            <p class="text-xs font-semibold text-muted-foreground">${t("tapSeatToComplain")}</p>
+            <div class="max-h-[45vh] overflow-y-auto rounded-xl bg-secondary/50 p-2">
+              ${seatMapHtml}
+            </div>
+            ${state.pComplaintSeat ? `
+              <div class="flex flex-col gap-2 rounded-xl border border-border p-3">
+                <p class="text-sm font-bold">${t("complaintAbout")} ${state.pComplaintSeat}</p>
+                <div class="flex gap-2">
+                  ${["noise","behaviour","other"].map(c => `
+                    <button onclick="state.pComplaintCategory='${c}';render()"
+                      class="flex-1 rounded-full px-2 py-2 text-xs font-bold ${state.pComplaintCategory===c ? 'bg-primary text-primary-foreground' : 'bg-secondary text-secondary-foreground'}">
+                      ${t(c)}
+                    </button>
+                  `).join("")}
+                </div>
+                <textarea oninput="state.pComplaintText=this.value" placeholder="${t("describe")}" rows="2"
+                  class="rounded-xl border border-input bg-background px-3 py-2 text-sm">${state.pComplaintText}</textarea>
+                <div class="flex gap-2">
+                  <button onclick="submitSeatComplaint()" class="flex-1 rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground">${t("send")}</button>
+                  <button onclick="state.pComplaintSeat=null;render()" class="rounded-xl border border-border px-4 py-2.5 text-sm font-semibold">${t("cancel")}</button>
+                </div>
+              </div>
+            ` : ""}
+          </div>
+        `;
+      } else {
+        const myRequests = all("requests")
+          .filter(r => seatsMatch(r.seat, state.pSeat))
+          .sort((a,b) => b.createdAt - a.createdAt);
+
+        const statusLabel = { new: "statusSent", seen: "statusSeen", in_progress: "statusInProgress", resolved: "statusResolved" };
+        const statusColor = {
+          new: "bg-secondary text-secondary-foreground",
+          seen: "bg-accent text-accent-foreground",
+          in_progress: "bg-seat-minor text-seat-minor-foreground",
+          resolved: "bg-seat-ok text-seat-ok-foreground"
+        };
+        const typeLabel = (tp) => tp === "medical_emergency" ? "medicalEmergency" : tp === "call_steward" ? "callSteward" : tp === "order" ? "orderSnacks" : "complaints";
+
+        content = `
+          <div class="flex flex-col gap-3">
+            <button onclick="state.pConfirmingEmergency=!state.pConfirmingEmergency;render()"
+              class="flex items-center gap-3 rounded-2xl bg-destructive px-5 py-5 text-left text-lg font-extrabold text-destructive-foreground shadow-sm">
+              <span>⚠️</span>
+              <span>${t("medicalEmergency")}</span>
+            </button>
+            ${state.pConfirmingEmergency ? `
+              <div class="flex flex-col gap-2 rounded-2xl border-2 border-destructive bg-card p-3 shadow-sm">
+                <p class="text-xs font-bold uppercase tracking-wide text-destructive">${ro ? "Ce se întâmplă?" : "What is happening?"}</p>
+                <div class="grid grid-cols-2 gap-2">
+                  ${EMERGENCIES.map(e => `
+                    <button onclick="sendMedicalEmergency('${e[state.lang]}')"
+                      class="rounded-xl bg-destructive/10 px-3 py-3 text-left text-sm font-bold text-destructive">
+                      ${e[state.lang]}
+                    </button>
+                  `).join("")}
+                </div>
+                <div class="flex gap-2">
+                  <input value="${state.pOtherEmergency}" oninput="state.pOtherEmergency=this.value"
+                    placeholder="${ro ? 'Altele...' : 'Other...'}"
+                    class="min-w-0 flex-1 rounded-xl border border-input bg-background px-3 py-2 text-sm" />
+                  <button onclick="sendMedicalEmergency(state.pOtherEmergency.trim())"
+                    class="rounded-xl bg-destructive px-4 py-2 text-sm font-bold text-destructive-foreground">
+                    ${t("send")}
+                  </button>
+                </div>
+              </div>
+            ` : ""}
+            <button onclick="callStewardAction()"
+              class="flex items-center gap-3 rounded-2xl bg-card px-5 py-5 text-left text-lg font-bold shadow-sm">
+              <span class="text-primary">🔔</span>
+              <span>${t("callSteward")}</span>
+            </button>
+            <button onclick="setPassengerView('order')"
+              class="flex items-center gap-3 rounded-2xl bg-card px-5 py-5 text-left text-lg font-bold shadow-sm">
+              <span class="text-primary">🛒</span>
+              <span>${t("orderSnacks")}</span>
+            </button>
+            <button onclick="setPassengerView('rate')"
+              class="flex items-center gap-3 rounded-2xl bg-card px-5 py-5 text-left text-lg font-bold shadow-sm">
+              <span class="text-primary">⭐</span>
+              <span>${t("rateFlight")}</span>
+            </button>
+            <button onclick="setPassengerView('seatmap')"
+              class="flex items-center gap-3 rounded-2xl bg-card px-5 py-5 text-left text-lg font-bold shadow-sm">
+              <span class="text-primary">💬</span>
+              <span>${t("complaints")}</span>
+            </button>
+
+            ${myRequests.length > 0 ? `
+              <div class="mt-2 rounded-2xl bg-card p-4 shadow-sm">
+                <h3 class="mb-2 text-sm font-bold">${t("yourRequests")}</h3>
+                <ul class="flex flex-col gap-2">
+                  ${myRequests.map(r => `
+                    <li class="flex items-center justify-between gap-2 text-sm">
+                      <span class="font-semibold">${t(typeLabel(r.type))}</span>
+                      <span class="rounded-full px-2.5 py-1 text-[11px] font-bold ${statusColor[r.status]}">${t(statusLabel[r.status])}</span>
+                    </li>
+                  `).join("")}
+                </ul>
+              </div>
+            ` : ""}
+          </div>
+        `;
+      }
+
+      return `
+        <div class="flex min-h-full flex-col gap-3 p-3">
+          <div class="flex items-center justify-between">
+            <span class="text-base font-extrabold tracking-tight text-primary">${t("appName")}</span>
+            ${renderLangSwitcher()}
+          </div>
+          ${content}
+        </div>
+      `;
+    }
+
+    function renderStewardApp() {
+      const ro = state.lang === "ro";
+      if (!state.sLoggedIn) {
+        return `
+          <div class="flex min-h-full flex-col gap-3 p-3">
+            <div class="flex items-center justify-between">
+              <span class="flex items-center gap-2 text-base font-extrabold tracking-tight text-primary">
+                ✈️ ${t("appName")} · ${t("steward")}
+              </span>
+              ${renderLangSwitcher()}
+            </div>
+            <div class="flex flex-col gap-3 rounded-2xl bg-card p-5 shadow-sm">
+              <h2 class="text-lg font-extrabold text-foreground">${t("stewardLoginTitle")}</h2>
+              <label class="flex flex-col gap-1 text-xs font-bold">
+                ${t("username")}
+                <input value="${state.sUsername}" oninput="state.sUsername=this.value"
+                  class="rounded-xl border border-input bg-background px-3 py-2.5 text-sm" />
+              </label>
+              <label class="flex flex-col gap-1 text-xs font-bold">
+                ${t("password")}
+                <input type="password" value="${state.sPassword}" oninput="state.sPassword=this.value"
+                  class="rounded-xl border border-input bg-background px-3 py-2.5 text-sm" />
+              </label>
+              ${state.sLoginError ? `<p class="text-xs font-bold text-seat-urgent">${state.sLoginError}</p>` : ""}
+              <button onclick="loginSteward()" class="rounded-xl bg-primary px-4 py-3 text-sm font-bold text-primary-foreground">
+                ${t("signIn")}
+              </button>
+            </div>
+          </div>
+        `;
+      }
+
+      const requests = all("requests");
+      const orders = all("orders");
+      const complaints = all("seatComplaints");
+      const ratings = all("flightRatings");
+      const passengers = all("passengers");
+
+      const open = requests.filter(r => r.status !== "resolved");
+      const urgent = open.filter(r => r.type === "medical_emergency");
+      const calls = open.filter(r => r.type === "call_steward");
+      const openOrders = orders.filter(o => o.status !== "resolved");
+
+      function avgRating(r) {
+        return (r.turbulence + r.staffBehaviour + r.cleanliness + r.legroom + r.bagSpace) / 5;
+      }
+
+      function getStatus(seatCode) {
+        const seatOpen = open.filter(r => seatsMatch(r.seat, seatCode));
+        if (seatOpen.some(r => r.type === "medical_emergency" || r.type === "call_steward")) return "urgent";
+        if (seatOpen.length > 0 || complaints.some(c => seatsMatch(c.targetSeat, seatCode))) return "minor";
+        return "ok";
+      }
+
+      const tabs = [
+        { id: "urgent", label: t("urgent"), count: urgent.length, alert: urgent.length > 0 },
+        { id: "calls", label: t("calls"), count: calls.length },
+        { id: "orders", label: t("orders"), count: openOrders.length },
+        { id: "complaints", label: t("feedbackTab"), count: complaints.length + ratings.length }
+      ];
+
+      function renderStatusBtn(col, id, st) {
+        const labels = { new: "markSeen", seen: "startProgress", in_progress: "resolve", resolved: "resolved" };
+        if (st === "resolved") {
+          return `<span class="rounded-full bg-seat-ok px-2.5 py-1 text-[11px] font-bold text-seat-ok-foreground">${t("resolved")}</span>`;
+        }
+        return `<button onclick="advanceItem('${col}','${id}','${st}')" class="rounded-full bg-primary px-3 py-1.5 text-[11px] font-bold text-primary-foreground">${t(labels[st])}</button>`;
+      }
+
+      function renderRequestRow(r) {
+        const lbl = r.type === "medical_emergency" ? "medicalEmergency" : r.type === "call_steward" ? "callSteward" : r.type === "order" ? "orderSnacks" : "complaints";
+        const conds = (r.payload && Array.isArray(r.payload.conditions)) ? r.payload.conditions : [];
+        const emergency = (r.payload && typeof r.payload.emergency === "string") ? r.payload.emergency : "";
+        const ordItems = (r.payload && Array.isArray(r.payload.items)) ? r.payload.items : [];
+        const ordTotal = ordItems.length ? formatPrice(cartTotalCents(Object.fromEntries(ordItems.map(i => [i.name, i.qty]))), ro) : "";
+
+        let actionHtml = "";
+        if (r.type === "order") {
+          actionHtml = r.status === "new"
+            ? `<button onclick="updateItemStatus('requests','${r.id}','seen')" class="shrink-0 rounded-full bg-primary px-3 py-1.5 text-[11px] font-bold text-primary-foreground">${t("markSeen")}</button>`
+            : `<span class="shrink-0 rounded-full bg-seat-ok px-2.5 py-1 text-[11px] font-bold text-seat-ok-foreground">${t("seen")}</span>`;
+        } else if (r.type === "medical_emergency" || r.type === "call_steward") {
+          actionHtml = r.status === "resolved"
+            ? `<span class="shrink-0 rounded-full bg-seat-ok px-2.5 py-1 text-[11px] font-bold text-seat-ok-foreground">${t("resolved")}</span>`
+            : `<button onclick="updateItemStatus('requests','${r.id}','resolved')" class="shrink-0 rounded-full bg-primary px-3 py-1.5 text-[11px] font-bold text-primary-foreground">${t("resolve")}</button>`;
+        } else {
+          actionHtml = renderStatusBtn("requests", r.id, r.status);
+        }
+
+        return `
+          <li class="flex items-center justify-between gap-2 rounded-xl px-3 py-2 text-sm ${r.type === 'medical_emergency' ? 'bg-seat-urgent/15' : 'bg-secondary'}">
+            <div>
+              <span class="font-bold">${r.seat}</span>
+              <span class="ml-2 font-semibold">${t(lbl)}</span>
+              ${r.type === 'medical_emergency' && emergency ? `<p class="text-sm font-extrabold text-seat-urgent">${emergency}</p>` : ""}
+              ${r.type === 'medical_emergency' && conds.length ? `<p class="text-xs font-semibold text-seat-urgent">${conds.join(", ")}</p>` : ""}
+              ${r.type === 'order' && ordItems.length ? `
+                <p class="text-xs text-muted-foreground">${ordItems.map(i => `${i.qty}× ${i.name}`).join(", ")}</p>
+                <p class="font-bold text-primary">Total: ${ordTotal}</p>
+              ` : ""}
+            </div>
+            ${actionHtml}
+          </li>
+        `;
+      }
+
+      let tabListHtml = "";
+      if (state.sTab === "urgent") {
+        tabListHtml = urgent.length ? `<ul class="flex flex-col gap-2">${urgent.map(renderRequestRow).join("")}</ul>` : `<p class="text-sm text-muted-foreground">${t("emptyTab")}</p>`;
+      } else if (state.sTab === "calls") {
+        tabListHtml = calls.length ? `<ul class="flex flex-col gap-2">${calls.map(renderRequestRow).join("")}</ul>` : `<p class="text-sm text-muted-foreground">${t("emptyTab")}</p>`;
+      } else if (state.sTab === "orders") {
+        tabListHtml = openOrders.length ? `<ul class="flex flex-col gap-2">${openOrders.map(o => {
+          const total = formatPrice(cartTotalCents(Object.fromEntries(o.items.map(i => [i.name, i.qty]))), ro);
+          return `
+            <li class="flex items-center justify-between gap-2 rounded-xl bg-secondary px-3 py-2 text-sm">
+              <div>
+                <span class="font-bold">${o.seat}</span>
+                <span class="ml-2 text-muted-foreground">${o.items.map(i => `${i.qty}× ${i.name}`).join(", ")}</span>
+                <p class="mt-1 font-bold text-primary">Total: ${total}</p>
+              </div>
+              ${o.status === "new"
+                ? `<button onclick="updateItemStatus('orders','${o.id}','seen')" class="shrink-0 rounded-full bg-primary px-3 py-1.5 text-[11px] font-bold text-primary-foreground">${t("markSeen")}</button>`
+                : `<span class="shrink-0 rounded-full bg-seat-ok px-2.5 py-1 text-[11px] font-bold text-seat-ok-foreground">${t("seen")}</span>`}
+            </li>
+          `;
+        }).join("")}</ul>` : `<p class="text-sm text-muted-foreground">${t("emptyTab")}</p>`;
+      } else {
+        if (!complaints.length && !ratings.length) {
+          tabListHtml = `<p class="text-sm text-muted-foreground">${t("emptyTab")}</p>`;
+        } else {
+          tabListHtml = `
+            <ul class="flex flex-col gap-2">
+              ${complaints.map(c => `
+                <li class="rounded-xl bg-secondary px-3 py-2 text-sm">
+                  <span class="font-bold">${c.fromSeat} → ${c.targetSeat}</span>
+                  <span class="ml-2 rounded-full bg-seat-minor px-2 py-0.5 text-[10px] font-bold text-seat-minor-foreground">${t(c.category)}</span>
+                  ${c.text ? `<p class="mt-1 text-xs text-muted-foreground">${c.text}</p>` : ""}
+                </li>
+              `).join("")}
+            </ul>
+            ${ratings.length ? `
+              <ul class="mt-2 flex flex-col gap-2">
+                ${ratings.map(r => `
+                  <li class="rounded-xl bg-secondary px-3 py-2 text-sm">
+                    <span class="font-bold">${t("anonymous")}</span>
+                    <span class="ml-2 font-bold text-primary">★ ${avgRating(r).toFixed(1)}</span>
+                    ${r.comment ? `<p class="mt-1 text-xs text-muted-foreground">“${r.comment}”</p>` : ""}
+                  </li>
+                `).join("")}
+              </ul>
+            ` : ""}
+          `;
+        }
+      }
+
+      let seatPanelHtml = "";
+      if (state.sSelectedSeat) {
+        const s = state.sSelectedSeat;
+        const sReqs = requests.filter(r => seatsMatch(r.seat, s));
+        const sComps = complaints.filter(c => seatsMatch(c.targetSeat, s));
+        const sPax = passengers.find(p => seatsMatch(p.seat, s));
+        const sPaxRatings = all("passengerRatings").filter(r => seatsMatch(r.seat, s));
+
+        seatPanelHtml = `
+          <div class="flex flex-col gap-3 rounded-2xl bg-card p-4 shadow-sm">
+            <div class="flex items-center justify-between">
+              <h3 class="text-base font-extrabold">
+                ${t("requestsFor")} ${s}
+                ${sPax ? `<span class="ml-2 text-sm font-semibold text-muted-foreground">${sPax.name}</span>` : ""}
+              </h3>
+              <button onclick="state.sSelectedSeat=null;render()" class="text-sm font-bold text-primary">✕</button>
+            </div>
+            ${sPax && sPax.medicalConditions.length ? `
+              <p class="rounded-xl bg-seat-urgent/15 px-3 py-2 text-xs font-bold text-seat-urgent">
+                ${t("medicalLabel")}: ${sPax.medicalConditions.join(", ")}
+              </p>
+            ` : ""}
+            ${sReqs.length ? `<ul class="flex flex-col gap-2">${sReqs.map(renderRequestRow).join("")}</ul>` : ""}
+            ${sComps.map(c => `<p class="rounded-xl bg-secondary px-3 py-2 text-xs"><span class="font-bold">${t(c.category)}</span> · ${c.fromSeat}: ${c.text}</p>`).join("")}
+            <div class="flex flex-col gap-2 rounded-xl border border-border p-3">
+              <p class="text-xs font-bold">${t("ratePassenger")}</p>
+              <div class="flex items-center gap-2">
+                <select onchange="state.sPaxScore=Number(this.value)" class="rounded-lg border border-input bg-background px-2 py-1.5 text-sm">
+                  ${[1,2,3,4,5].map(n => `<option value="${n}" ${state.sPaxScore===n?'selected':''}>${n}</option>`).join("")}
+                </select>
+                <input value="${state.sPaxNote}" oninput="state.sPaxNote=this.value" placeholder="${t("note")}"
+                  class="min-w-0 flex-1 rounded-lg border border-input bg-background px-2 py-1.5 text-sm" />
+                <button onclick="submitPassengerRating()" class="rounded-lg bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground">${t("send")}</button>
+              </div>
+              ${sPaxRatings.map(r => `<p class="text-xs text-muted-foreground">★ ${r.score} — ${r.note}</p>`).join("")}
+            </div>
+          </div>
+        `;
+      }
+
+      let endFlightHtml = "";
+      if (state.sUploadProgress === null) {
+        endFlightHtml = `
+          <button onclick="startEndFlightUpload()" class="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-bold text-primary-foreground">
+            ☁️ ${t("endFlight")}
+          </button>
+        `;
+      } else if (state.sUploadProgress < 100) {
+        endFlightHtml = `
+          <div>
+            <p class="mb-1 text-xs font-semibold text-muted-foreground">${t("uploading")}</p>
+            <div class="h-3 overflow-hidden rounded-full bg-secondary">
+              <div class="h-full rounded-full bg-primary transition-all" style="width:${state.sUploadProgress}%"></div>
+            </div>
+          </div>
+        `;
+      } else {
+        endFlightHtml = `
+          <p class="rounded-xl bg-seat-ok px-4 py-3 text-center text-sm font-bold text-seat-ok-foreground">
+            ${t("uploadComplete")}
+          </p>
+        `;
+      }
+
+      return `
+        <div class="flex min-h-full flex-col gap-3 p-3">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <span class="flex items-center gap-1.5 text-base font-extrabold tracking-tight text-primary">
+                ✈️ ${t("appName")} · ${t("steward")}
+              </span>
+              <span class="rounded-full bg-seat-ok px-2.5 py-0.5 text-[11px] font-extrabold text-seat-ok-foreground">
+                ${state.sFlightNumber} · ${state.sFlightDate}
+              </span>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <button onclick="logoutSteward()" class="rounded-full border border-border bg-card px-2 py-1 text-[10px] font-bold text-primary">Sign Out</button>
+              ${renderLangSwitcher()}
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-2 rounded-xl border border-border bg-card p-2.5">
+            <label class="flex flex-col gap-0.5 text-[10px] font-bold text-muted-foreground">
+              ${t("flightNumberLabel")}
+              <input value="${state.sFlightNumber}" readonly class="rounded-lg border border-input bg-background px-2.5 py-1.5 text-xs font-bold text-foreground" />
+            </label>
+            <label class="flex flex-col gap-0.5 text-[10px] font-bold text-muted-foreground">
+              ${t("flightDateLabel")}
+              <input value="${state.sFlightDate}" readonly class="rounded-lg border border-input bg-background px-2.5 py-1.5 text-xs font-bold text-foreground" />
+            </label>
+          </div>
+
+          <div class="grid grid-cols-4 gap-2">
+            ${tabs.map(tb => `
+              <button onclick="state.sTab='${tb.id}';render()"
+                class="relative rounded-xl px-2 py-2.5 text-xs font-bold shadow-sm transition-colors ${state.sTab === tb.id ? 'bg-primary text-primary-foreground' : 'bg-card text-foreground'} ${tb.alert ? 'animate-pulse-red' : ''}">
+                ${tb.label}
+                <span class="absolute -top-1.5 -right-1.5 flex h-5 min-w-[1.25rem] items-center justify-center rounded-full px-1 text-[10px] font-extrabold ${tb.alert ? 'bg-seat-urgent text-seat-urgent-foreground' : 'bg-secondary text-secondary-foreground'}">
+                  ${tb.count}
+                </span>
+              </button>
+            `).join("")}
+          </div>
+
+          <div class="grid flex-1 gap-3 lg:grid-cols-[auto_1fr]">
+            <div class="overflow-y-auto rounded-2xl bg-card p-3 shadow-sm">
+              ${renderSeatMap(getStatus, "onStewardSeatClick", state.sSelectedSeat)}
+            </div>
+            <div class="flex flex-col gap-3">
+              <div class="rounded-2xl bg-card p-3 shadow-sm">
+                ${tabListHtml}
+              </div>
+              ${seatPanelHtml}
+              <div class="rounded-2xl bg-card p-3 shadow-sm">
+                ${endFlightHtml}
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderSimulatePanel() {
+      return `
+        <div class="flex flex-wrap items-center justify-center gap-2 rounded-2xl bg-card p-3 shadow-sm">
+          <span class="mr-1 text-xs font-extrabold uppercase tracking-wide text-muted-foreground">${t("simulate")}</span>
+          <button onclick="simMedical()" class="rounded-full bg-seat-urgent px-3 py-2 text-xs font-bold text-seat-urgent-foreground">${t("simMedical")}</button>
+          <button onclick="simCall()" class="rounded-full bg-secondary px-3 py-2 text-xs font-bold text-secondary-foreground hover:bg-accent">${t("simCall")}</button>
+          <button onclick="simOrder()" class="rounded-full bg-secondary px-3 py-2 text-xs font-bold text-secondary-foreground hover:bg-accent">${t("simOrder")}</button>
+          <button onclick="simComplaint()" class="rounded-full bg-secondary px-3 py-2 text-xs font-bold text-secondary-foreground hover:bg-accent">${t("simComplaint")}</button>
+          <button onclick="simBadReview()" class="rounded-full bg-seat-urgent px-3 py-2 text-xs font-bold text-seat-urgent-foreground">${t("simBadReview")}</button>
+          <button onclick="simReset()" class="rounded-full border border-border bg-background px-3 py-2 text-xs font-bold text-foreground">${t("reset")}</button>
+        </div>
+      `;
+    }
+
+    function render() {
+      const root = document.getElementById("app");
+      const ro = state.lang === "ro";
+      let mainBody = "";
+      if (state.appMode === "passenger") {
+        mainBody = `
+          <div class="mx-auto w-full max-w-[420px] rounded-[2rem] border-8 border-foreground/80 bg-background shadow-xl">
+            <div class="h-[82vh] min-h-[540px] overflow-y-auto rounded-[1.6rem]">
+              ${renderPassengerApp()}
+            </div>
+          </div>
+        `;
+      } else if (state.appMode === "steward") {
+        mainBody = `
+          <div class="mx-auto w-full max-w-5xl rounded-[1.5rem] border-8 border-foreground/80 bg-background shadow-xl">
+            <div class="h-[78vh] min-h-[520px] overflow-y-auto rounded-[1.1rem]">
+              ${renderStewardApp()}
+            </div>
+          </div>
+        `;
+      } else {
+        mainBody = `
+          <div class="grid min-w-[760px] flex-1 grid-cols-2 gap-4">
+            <section class="flex flex-col gap-2">
+              <div class="flex items-center justify-between">
+                <h2 class="text-sm font-extrabold uppercase tracking-wide text-muted-foreground">${t("passenger")}</h2>
+              </div>
+              <div class="mx-auto w-full max-w-[420px] rounded-[2rem] border-8 border-foreground/80 bg-background shadow-xl">
+                <div class="h-[70vh] min-h-[480px] overflow-y-auto rounded-[1.6rem]">
+                  ${renderPassengerApp()}
+                </div>
+              </div>
+            </section>
+            <section class="flex flex-col gap-2">
+              <div class="flex items-center justify-between">
+                <h2 class="text-sm font-extrabold uppercase tracking-wide text-muted-foreground">${t("steward")}</h2>
+                <button onclick="setAppMode('steward')" class="text-xs font-bold text-primary underline">${t("openSteward")}</button>
+              </div>
+              <div class="rounded-[1.5rem] border-8 border-foreground/80 bg-background shadow-xl">
+                <div class="h-[70vh] min-h-[480px] overflow-y-auto rounded-[1.1rem]">
+                  ${renderStewardApp()}
+                </div>
+              </div>
+            </section>
+          </div>
+        `;
+      }
+
+      root.innerHTML = `
+        <div class="flex min-h-screen flex-col gap-4 overflow-x-auto p-4">
+          <header class="flex flex-wrap items-center justify-between gap-2">
+            <h1 class="flex items-center gap-2 text-2xl font-extrabold tracking-tight text-primary">
+              ✈️ ${t("appName")}
+            </h1>
+            <div class="flex items-center gap-2">
+              <button onclick="setAppMode('split')" class="rounded-full px-3 py-1 text-xs font-bold ${state.appMode==='split' ? 'bg-primary text-primary-foreground' : 'bg-card border border-border'}">Split Demo (/)</button>
+              <button onclick="setAppMode('passenger')" class="rounded-full px-3 py-1 text-xs font-bold ${state.appMode==='passenger' ? 'bg-primary text-primary-foreground' : 'bg-card border border-border'}">Passenger App (/p)</button>
+              <button onclick="setAppMode('steward')" class="rounded-full px-3 py-1 text-xs font-bold ${state.appMode==='steward' ? 'bg-primary text-primary-foreground' : 'bg-card border border-border'}">Steward App (/s)</button>
+            </div>
+            <p class="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
+              <span class="inline-block h-2 w-2 rounded-full bg-seat-ok"></span>
+              Ditto live · ${DITTO_CONFIG.databaseId}
+            </p>
+          </header>
+          ${mainBody}
+        </div>
+      `;
+    }
+
+    seed();
+    render();
+  </script>
+</body>
+</html>

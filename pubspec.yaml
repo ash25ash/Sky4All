@@ -1,0 +1,66 @@
+name: sky4all
+description: Sky4All — In-flight passenger & crew steward application implemented in Flutter Dart, synced with Ditto Big Peer and SQL Server Management Studio 22.
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.2.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  ditto_live: ^4.8.0
+  http: ^1.2.1
+  provider: ^6.1.2
+  google_fonts: ^6.2.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/images/
+    - assets/images/airplane.png
+    - assets/images/menu-cola.jpg
+    - assets/images/menu-cola-zero.jpg
+    - assets/images/menu-fanta.jpg
+    - assets/images/menu-sprite.jpg
+    - assets/images/menu-pepsi.jpg
+    - assets/images/menu-7up.jpg
+    - assets/images/menu-evian.jpg
+    - assets/images/menu-perrier.jpg
+    - assets/images/menu-sanpellegrino.jpg
+    - assets/images/menu-caprisun.jpg
+    - assets/images/menu-lays.jpg
+    - assets/images/menu-lays-paprika.jpg
+    - assets/images/menu-pringles.jpg
+    - assets/images/menu-doritos.jpg
+    - assets/images/menu-chio.jpg
+    - assets/images/menu-oreo.jpg
+    - assets/images/menu-snickers.jpg
+    - assets/images/menu-mms.jpg
+    - assets/images/menu-kitkat.jpg
+    - assets/images/menu-twix.jpg
+    - assets/images/menu-redbull.jpg
+    - assets/images/menu-lipton.jpg
+    - assets/images/menu-starbucks.jpg
+    - assets/images/menu-innocent.jpg
+    - assets/images/menu-schweppes.jpg
+    - assets/images/menu-haribo.jpg
+    - assets/images/menu-kinder.jpg
+    - assets/images/menu-milka.jpg
+    - assets/images/menu-nutella.jpg
+    - assets/images/menu-naturevalley.jpg
+    - assets/images/menu-monster.jpg
+    - assets/images/menu-fuzetea.jpg
+    - assets/images/menu-tropicana.jpg
+    - assets/images/menu-heineken.jpg
+    - assets/images/menu-nescafe.jpg
+    - assets/images/menu-toblerone.jpg
+    - assets/images/menu-bounty.jpg
+    - assets/images/menu-mars.jpg
+    - assets/images/menu-lindor.jpg
+    - assets/images/menu-pringles-sco.jpg
